@@ -1,0 +1,30 @@
+# IntelliJ / IDE
+.idea/
+*.iml
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+logs/
+*.log
+
+# Env
+.env
+
+# Node/React
+node_modules/
+dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
