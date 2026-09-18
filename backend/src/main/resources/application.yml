@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/civicpulse}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+server:
+  port: 8080
+civicpulse:
+  jwt-secret: ${JWT_SECRET:change-me-in-env-with-at-least-thirty-two-chars-long}
+  gemini-api-key: ${GEMINI_API_KEY:}
