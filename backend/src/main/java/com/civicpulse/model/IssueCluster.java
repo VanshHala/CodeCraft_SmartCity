@@ -15,7 +15,7 @@ public class IssueCluster {
     private String nearestEdgeId;
     private String status = "REPORTED";
     private Double priorityScore = 0.0;
-    private Integer reportCount = 1;
+    private Double reportCount = 1.0;
     private Long assignedWorkerId;
     private LocalDateTime firstReportedAt = LocalDateTime.now();
     private LocalDateTime lastReportedAt = LocalDateTime.now();
@@ -39,8 +39,8 @@ public class IssueCluster {
     public void setStatus(String status) { this.status = status; }
     public Double getPriorityScore() { return priorityScore; }
     public void setPriorityScore(Double priorityScore) { this.priorityScore = priorityScore; }
-    public Integer getReportCount() { return reportCount; }
-    public void setReportCount(Integer reportCount) { this.reportCount = reportCount; }
+    public Double getReportCount() { return reportCount; }
+    public void setReportCount(Double reportCount) { this.reportCount = reportCount; }
     public Long getAssignedWorkerId() { return assignedWorkerId; }
     public void setAssignedWorkerId(Long assignedWorkerId) { this.assignedWorkerId = assignedWorkerId; }
     public LocalDateTime getFirstReportedAt() { return firstReportedAt; }

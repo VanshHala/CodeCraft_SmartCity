@@ -23,19 +23,51 @@ export default function ReportForm() {
     const { url: photoUrl } = await uploadRes.json();
     const res = await fetch("/api/reports", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.jwtToken}`
+      },
       body: JSON.stringify({
-        citizenId: 1, // replace with logged-in user id once STEP 17 auth exists
+        citizenId: window.currentUserId,
         photoUrl, description, issueType, lat: coords.lat, lng: coords.lng,
       }),
     });
     const data = await res.json();
-    setStatus(
-      data.mergedIntoExistingCluster
-        ? `This issue already exists — ${data.clusterReportCount} citizens have reported it now.`
-        : "Report submitted! Thank you."
-    );
+    if (!res.ok) {
+      setStatus(data.error || "Submission failed.");
+    } else {
+      setStatus(
+        data.mergedIntoExistingCluster
+          ? `This issue already exists — ${data.clusterReportCount} citizens have reported it now.`
+          : "Report submitted! Thank you."
+      );
+    }
   }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const [isRecording, setIsRecording] = useState(false);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      return;
+    }
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setDescription(prev => prev ? `${prev} ${transcript}` : transcript);
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+    recognition.start();
+  };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 space-y-4">
@@ -50,12 +82,19 @@ export default function ReportForm() {
         <option value="SAFETY">Safety</option>
         <option value="OTHER">Other</option>
       </select>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-        placeholder="Optional description" className="w-full border p-2 rounded" />
-      <button type="button" onClick={captureLocation} className="border px-3 py-2 rounded">
+      <div className="relative">
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+          placeholder="Optional description" className="w-full border p-2 rounded pb-10 min-h-[100px]" />
+        <button type="button" onClick={toggleRecording} aria-label="Voice input for accessibility"
+          className={`absolute bottom-2 right-2 p-2 rounded-full shadow-sm transition-colors ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          title="Dictate description (Accessibility)">
+          {isRecording ? '🛑' : '🎤'}
+        </button>
+      </div>
+      <button type="button" onClick={captureLocation} className="border px-3 py-2 rounded w-full bg-white">
         {coords ? `Location captured ✓ (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "Capture Location"}
       </button>
-      <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded w-full">
+      <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded w-full font-bold">
         Submit Report
       </button>
       {status && <p className="text-sm text-gray-700">{status}</p>}

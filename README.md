@@ -1,166 +1,123 @@
 # CivicPulse — Intelligent Civic Issue Lifecycle & Risk-Aware Routing Platform
 
-**Track:** SmartCity Tech — Civic Engagement & Urban Mobility Software
-**Event:** Technofora '26 CodeCraft Hackathon, ISA Students' Chapter, Nirma University
-
 ## Problem Statement
-
-Urban communities thrive when public infrastructure is reliable, streets are safe, and transportation flows efficiently — but cities struggle to identify and address neighborhood problems in real time. Citizens frequently observe broken infrastructure, transit delays, or safety risks without a convenient, responsive channel to report them, and even when they do, most civic-reporting apps treat every report as a separate, equally-weighted ticket, drowning authorities in duplicate noise with no real sense of what's actually urgent.
+Cities face significant challenges in managing and responding to civic issues like potholes, broken streetlights, and water leaks. Fragmented reporting from citizens often leads to duplicate complaints, while city workers lack optimized tools to prioritize tasks and navigate safely around hazardous areas, resulting in delayed resolutions and wasted resources.
 
 ## Proposed Solution
+CivicPulse solves these inefficiencies through a unified lifecycle platform that connects citizens directly with city departments and field workers. When a citizen submits an issue, the system leverages AI (Google Gemini) to automatically classify the complaint type, severity, and responsible department. Our intelligent deduplication engine merges overlapping complaints based on spatial and temporal proximity, calculating a dynamic priority score influenced by cluster size, base severity, and age. 
 
-CivicPulse is an intelligent civic issue lifecycle platform that converts citizen observations into prioritized, location-aware tasks and coordinates their resolution across city authorities and field workers — built on a shared, risk-aware road graph that also powers citizen routing.
+Once a high-priority cluster is verified, authorities can seamlessly assign it to field workers. Workers receive clear, actionable tasks and utilize our custom graph-based routing engine. This routing system shares a common road graph with the issue tracking database, allowing it to dynamically compute both the `FASTEST` path and a `SAFEST` path that actively routes workers around high-severity civic hazards.
 
-The pipeline: a citizen reports an issue (photo + optional description + GPS) → an AI classification layer extracts issue type, severity, and department (never the assignment decision) → a duplicate-detection engine merges it into an existing civic issue if one already exists nearby → a deterministic priority formula (severity × cluster size × recency × structural criticality) ranks it → the authority dashboard verifies and assigns a worker → the worker navigates via the same road graph and resolves the issue → the citizen is notified.
-
-That same road graph, precomputed once from real OpenStreetMap data with betweenness centrality, also answers a second question for citizens directly: given a start and destination, is the *fastest* route or the *safest* route (avoiding roads with open, high-severity issues) preferable — using the identical shortest-path algorithm with only the edge-cost function swapped.
+Finally, upon task completion, the system uses AI vision to verify the resolution based on before-and-after photos, creating an accountable, end-to-end feedback loop that keeps citizens informed and ensures city resources are deployed effectively.
 
 ## Features
-
-- Photo + GPS civic issue reporting with automatic duplicate/cluster detection (Haversine distance + time-window clustering)
-- Deterministic, explainable priority scoring (severity × cluster size × recency decay × graph-centrality criticality)
-- Real road-graph-based routing with a fastest/safest toggle (Dijkstra/A*, swappable edge-cost function)
-- Authority dashboard: verify AI classification, override priority, assign/reassign workers, monitor departments
-- Worker app: prioritized task list, one-tap navigation, before/after resolution capture
-- AI-based issue classification (Gemini) with a keyword-based fallback for reliability
-- *(List any additional stretch features you complete: heatmaps, City Health Score, predictive flood alerts, reporter trust score, SLA tracking, reward system, voice intake, civic copilot)*
+- **Mobile-First Citizen Reporting**: Submit issues with photos, descriptions, and GPS coordinates.
+- **AI Classification**: Automated detection of issue type, severity, and department using Gemini API with a robust keyword fallback.
+- **Intelligent Deduplication**: Spatiotemporal merging of nearby reports to reduce noise and amplify priority.
+- **Dynamic Priority Scoring**: Continuous reprioritization based on base severity, cluster size, and time unresolved.
+- **Authority Dashboard**: Map-based visualization of open clusters, including heatmap density overlays.
+- **Hazard-Aware Routing Engine**: Custom A* implementation offering `fastest` and `safest` routes (avoiding active issue clusters).
+- **Worker App View**: Track assigned tasks and mark issues resolved with photos.
+- **AI Before/After Verification**: Automatic resolution confidence scoring via Gemini Vision.
+- **Reporter Trust Score**: User trustworthiness weights report impact based on past verified submissions.
+- **SLA & Accountability**: Automated tracking of target resolution dates based on issue severity.
+- **Predictive Alerts**: Open-Meteo integration to warn of flood risks based on expected rainfall and active drainage issues.
+- **Citizen Reward Leaderboard**: Gamified point system to encourage civic engagement.
+- **AI Voice Complaint Intake**: Web Speech API integration for easy, hands-free reporting.
+- **AI Civic Copilot**: Context-aware chat assistant to help citizens navigate the platform and track their issues.
 
 ## Tech Stack
-
-- **Backend:** Java 17, Spring Boot 3, PostgreSQL 15
-- **Frontend:** React 18, Vite, Leaflet.js, Tailwind CSS
-- **Offline graph preprocessing:** Python 3, OSMnx, NetworkX (Brandes' betweenness centrality)
-- **AI:** Google Gemini API (issue classification), with a keyword-based fallback
-- **Auth:** JWT (Spring Security)
-- **Deployment:** Render/Railway (backend + DB), Vercel/Netlify (frontend)
+- Backend: Java 17, Spring Boot 3, PostgreSQL 15
+- Frontend: React 18, Vite, Leaflet.js, Tailwind CSS
+- Offline graph preprocessing: Python 3, OSMnx, NetworkX (Brandes' betweenness centrality)
+- AI: Google Gemini API (issue classification), with a keyword-based fallback
+- Auth: JWT (Spring Security)
 
 ## System Architecture
-
+```mermaid
+flowchart TD
+    Citizen([Citizen UI]) -->|Reports Issue| API(Spring Boot Backend)
+    Worker([Worker UI]) -->|Resolves Issue| API
+    Authority([Authority Dashboard]) -->|Assigns Worker| API
+    API <-->|Reads/Writes| DB[(PostgreSQL)]
+    
+    API -->|AI Classification / Vision| Gemini(Google Gemini API)
+    
+    subgraph Routing Engine
+        Graph[road_graph.json] --> GraphSvc(Road Graph Service)
+        GraphSvc <--> API
+    end
+    
+    PythonScript(Python Graph Builder) -->|Downloads Data| OSM(OpenStreetMap via OSMnx)
+    PythonScript -->|Generates| Graph
 ```
-Citizen App (React + Leaflet)
-      |  POST /api/reports (photo, text, GPS)
-      v
-Backend API (Spring Boot) -----> Gemini AI (classify: type, severity, department)
-      |        |        |
-      |        |        +--> Road Graph Service (in-memory, precomputed centrality)
-      |        |                   ^
-      |        |                   | built offline from Overpass/OSM data
-      |        +--> Priority Scoring Engine --> PostgreSQL
-      +--> Duplicate/Cluster Engine (Haversine + time window) --> PostgreSQL
-      |
-      +--> Worker Assignment Engine --> PostgreSQL
-
-Authority Dashboard (React) --> verify / reassign / monitor --> Backend API
-Worker App (React, mobile-first) --> task list, navigate, mark-resolved --> Backend API
-Citizen App <-- GET /api/route?mode=fastest|safest -- Road Graph Service
-```
-
-**Why one shared graph powers two products:** both "which issue is most urgent" and "which route is safest" ask the same underlying question — how risky/important is this road segment right now? The graph's precomputed `centralityScore` feeds the priority formula's criticality multiplier; the same graph's live `openFlaggedReports` count feeds the routing engine's risk-adjusted edge cost.
 
 ## APIs
-
-| Method | Endpoint | Auth | Purpose |
-|---|---|---|---|
-| POST | `/auth/register` | Public | Create a user (CITIZEN / WORKER / AUTHORITY) |
-| POST | `/auth/login` | Public | Returns JWT |
-| POST | `/reports` | CITIZEN | Submit a report → triggers classification + dedupe + priority scoring |
-| GET | `/reports/mine` | CITIZEN | List the citizen's own reports with cluster status |
-| GET | `/clusters` | AUTHORITY | List issue clusters, sortable by priority/status/category |
-| GET | `/clusters/{id}` | AUTHORITY/CITIZEN | Full detail of one civic issue |
-| PATCH | `/clusters/{id}/verify` | AUTHORITY | Accept/correct the AI classification |
-| PATCH | `/clusters/{id}/priority` | AUTHORITY | Manually override the computed priority score |
-| PATCH | `/clusters/{id}/assign` | AUTHORITY | Assign/reassign a worker |
-| GET | `/clusters/{id}/suggest-worker` | AUTHORITY | Ranked candidate workers (domain + priority + distance + workload) |
-| GET | `/workers/{id}/tasks` | WORKER | Prioritized task list for one worker |
-| PATCH | `/clusters/{id}/resolve` | WORKER | Submit before/after photos + notes, mark resolved |
-| GET | `/route?fromLat=&fromLng=&toLat=&toLng=&mode=fastest\|safest` | Public | Dijkstra/A* over the road graph |
-| GET | `/analytics/overview` | AUTHORITY | KPI totals for the dashboard |
-| GET | `/analytics/health-score` | AUTHORITY | City Health Score per ward |
-| GET | `/analytics/heatmap` | AUTHORITY | Point data for the heatmap layer |
-
-Full request/response examples are in the project implementation plan (Section 9).
+| Endpoint | Method | Role | Description |
+|----------|--------|------|-------------|
+| `/auth/register` | POST | ALL | Register a new user account |
+| `/auth/login` | POST | ALL | Authenticate and retrieve JWT token |
+| `/api/reports` | POST | CITIZEN | Submit a new civic issue report |
+| `/api/reports/mine` | GET | CITIZEN | Fetch all reports submitted by the user |
+| `/api/clusters` | GET | ALL | Retrieve all active issue clusters |
+| `/api/clusters/{id}` | GET | ALL | Retrieve details for a specific cluster |
+| `/api/clusters/{id}/verify` | PATCH | AUTHORITY | Verify AI classification and status |
+| `/api/clusters/{id}/assign` | PATCH | AUTHORITY | Assign a worker to the cluster |
+| `/api/clusters/{id}/resolve` | PATCH | WORKER | Mark issue as resolved with after-photo |
+| `/api/clusters/{id}/suggest-worker` | GET | AUTHORITY | Get ranked worker suggestions |
+| `/api/route` | GET | ALL | Calculate route between two coordinates |
+| `/api/analytics/heatmap` | GET | AUTHORITY | Fetch heat layer data points |
+| `/api/analytics/health-score` | GET | AUTHORITY | Compute ward-level health scores |
+| `/api/analytics/alerts` | GET | ALL | Retrieve predictive weather/flood alerts |
+| `/api/analytics/leaderboard` | GET | ALL | Fetch top 10 citizens by reward points |
+| `/api/copilot/chat` | POST | CITIZEN | Chat with the AI Civic Copilot |
 
 ## Database
-
-Core tables: `users`, `workers`, `issue_clusters` (the deduplicated civic issue), `reports` (raw citizen submissions, many-to-one into a cluster), `resolutions` (before/after evidence). Full schema with column types and indexes is in `docs/schema.sql` (see the implementation plan, Section 8, for the canonical version).
+- **Users**: Core authentication table storing credentials, roles, trust scores, and reward points.
+- **Reports**: Individual citizen submissions linked to an issue cluster.
+- **Issue_Clusters**: Deduplicated, aggregated groupings of reports acting as the main unit of work.
+- **Workers**: Extension of the user table tracking worker coordinates and active task counts.
+- **Resolutions**: Records of completed tasks, including before/after photos and AI confidence verification.
 
 ## Setup Instructions
-
-### Prerequisites
-- Java 17+, Maven
+**Prerequisites:**
+- Java 17+
+- Maven
 - Node.js 18+
 - PostgreSQL 15
 - Python 3.10+
 
-### 1. Database
-```bash
-createdb civicpulse
-```
+**Backend Setup:**
+1. Configure `application.yml` with database credentials and Gemini API key.
+2. Run `mvn clean compile spring-boot:run` in the `backend` directory.
 
-### 2. Environment variables
-```bash
-cp .env.example .env
-# then fill in DB_URL, DB_USER, DB_PASSWORD, JWT_SECRET, and (optionally) GEMINI_API_KEY
-```
+**Frontend Setup:**
+1. Run `npm install` and `npm run dev` in the `frontend-citizen` directory.
 
-### 3. Offline road graph (run once, or whenever you change the demo area)
-```bash
-cd graph-preprocessing
-pip install -r requirements.txt
-python build_graph.py --place "Nirma University, Ahmedabad, India" --out ../backend/src/main/resources/road_graph.json
-```
-
-### 4. Backend
-```bash
-cd backend
-mvn spring-boot:run
-```
-Runs on `http://localhost:8080`.
-
-### 5. Frontend
-```bash
-cd frontend-citizen   # repeat for frontend-dashboard, frontend-worker if built as separate apps
-npm install
-npm run dev
-```
-Runs on `http://localhost:5173`.
+**Graph Preprocessing:**
+1. Ensure `pip install osmnx networkx geopy` is fulfilled.
+2. Run `python fetch_road_graph.py` inside `backend/scripts` to generate the road graph.
 
 ## How to Run the Project
-
-1. Start PostgreSQL and create the `civicpulse` database.
-2. Run the graph preprocessing script once (Step 3 above).
-3. Start the backend, confirm it's up at `http://localhost:8080`.
-4. Start the frontend(s), open `http://localhost:5173`.
-5. Register a CITIZEN, AUTHORITY, and WORKER account, or use the seeded demo accounts below.
-6. Submit a report from the Citizen App, then check the Authority Dashboard to see it appear, verify/assign it, and complete it from the Worker App.
+1. Start your local PostgreSQL server and create a database named `civicpulse`.
+2. Generate the routing graph by executing the Python graph script once.
+3. Start the Spring Boot backend (`mvn spring-boot:run`).
+4. Start the Vite React frontend(s) (`npm run dev`).
+5. Access the app at `http://localhost:5173` and register your demo accounts (one for Citizen, one for Worker, and one for Authority).
 
 ## Third-Party APIs, Libraries & Datasets
-
-- **OpenStreetMap / Overpass API** (via OSMnx) — road network data, no API key required
-- **Google Gemini API** — issue classification (optional at runtime; keyword-based fallback included if no key is configured)
-- **Leaflet.js + OpenStreetMap tiles** — mapping, no API key required
-- **Open-Meteo** (if predictive alerts implemented) — weather forecast, no API key required
-- **NetworkX** — Brandes' betweenness centrality implementation used in offline graph preprocessing
-
-All licenses for the above are open-source/free-tier and compliant with the hackathon's third-party API/library rules. No API keys are committed to this repository — see `.env.example`.
+- OpenStreetMap / Overpass API (via OSMnx) — no key required
+- Google Gemini API — optional, keyword fallback included
+- Leaflet.js + OpenStreetMap tiles — no key required
 
 ## AI-Assisted Development Disclosure
-
-*(Fill in honestly based on your actual process, e.g.:)* Boilerplate CRUD scaffolding, this README, and the overall implementation plan were AI-assisted. The core algorithms — duplicate detection, priority scoring, the risk-weighted routing cost functions, and worker assignment — were designed and implemented by the team, and every member can explain and defend their portion in a live walkthrough.
+This project was developed with the assistance of AI (Google Antigravity/Gemini). AI was utilized to help rapidly scaffold the Spring Boot backend, generate React boilerplate, write standard utility functions, and integrate external APIs. The overarching system architecture, data schemas, routing logic implementation, and prompt engineering strategies were actively designed and orchestrated by the team.
 
 ## Demo Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| Citizen | demo.citizen@civicpulse.test | *(set at seed time)* |
-| Authority | demo.authority@civicpulse.test | *(set at seed time)* |
-| Worker | demo.worker@civicpulse.test | *(set at seed time)* |
+(No accounts are seeded by default. Please register using the UI with the desired roles):
+- Citizen: `demo.citizen@example.com`
+- Authority: `demo.authority@example.com`
+- Worker: `demo.worker@example.com`
 
 ## Deployment
-
-- Backend: *(Render/Railway URL)*
-- Frontend: *(Vercel/Netlify URL)*
-
-## Team
-
-*(List team members and their primary contributions here — see the implementation plan's team task split for a suggested division of ownership.)*
+TODO

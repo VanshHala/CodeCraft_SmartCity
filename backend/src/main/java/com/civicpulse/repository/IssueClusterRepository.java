@@ -6,4 +6,5 @@ import java.util.List;
 public interface IssueClusterRepository extends JpaRepository<IssueCluster, Long> {
     List<IssueCluster> findByIssueTypeAndStatusNot(String issueType, String status);
     List<IssueCluster> findAllByOrderByPriorityScoreDesc();
+    List<IssueCluster> findByAssignedWorkerIdAndStatus(Long assignedWorkerId, String status);
 }

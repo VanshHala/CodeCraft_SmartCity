@@ -32,4 +32,20 @@ public class User {
     public void setRewardPoints(Integer rewardPoints) { this.rewardPoints = rewardPoints; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    private Integer totalReports = 0;
+    private Integer verifiedReports = 0;
+
+    public Integer getTotalReports() { return totalReports; }
+    public void setTotalReports(Integer totalReports) { this.totalReports = totalReports; }
+    public Integer getVerifiedReports() { return verifiedReports; }
+    public void setVerifiedReports(Integer verifiedReports) { this.verifiedReports = verifiedReports; }
+
+    public void updateTrustScore() {
+        if (totalReports == null || totalReports == 0) {
+            this.trustScore = 1.0;
+        } else {
+            this.trustScore = (double) (verifiedReports == null ? 0 : verifiedReports) / totalReports;
+        }
+    }
 }

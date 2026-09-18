@@ -4,10 +4,10 @@ public class ReportResponse {
     public Long clusterId;
     public String clusterStatus;
     public boolean mergedIntoExistingCluster;
-    public Integer clusterReportCount;
+    public Double clusterReportCount;
     public Double priorityScore;
     public ReportResponse(Long reportId, Long clusterId, String clusterStatus,
-            boolean mergedIntoExistingCluster, Integer clusterReportCount, Double priorityScore) {
+            boolean mergedIntoExistingCluster, Double clusterReportCount, Double priorityScore) {
         this.reportId = reportId; this.clusterId = clusterId; this.clusterStatus = clusterStatus;
         this.mergedIntoExistingCluster = mergedIntoExistingCluster;
         this.clusterReportCount = clusterReportCount; this.priorityScore = priorityScore;
