@@ -1,119 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Sparkles, X, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, X, CheckCircle2 } from 'lucide-react';
 
 export default function VoiceIntakeModal({ isOpen, onClose, onTranscriptComplete }) {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [statusText, setStatusText] = useState('Click to start speaking your issue');
+  const [transcript, setTranscript]   = useState('');
+  const [statusText, setStatusText]   = useState('Click the mic and describe the issue in your own words.');
 
   useEffect(() => {
-    if (!isOpen) {
-      setIsListening(false);
-      setTranscript('');
-    }
+    if (!isOpen) { setIsListening(false); setTranscript(''); }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const startSpeechRecognition = () => {
+  const startRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setStatusText('Speech recognition not supported in this browser. Please type below.');
+      setStatusText('Speech recognition not supported. Please type below instead.');
       return;
     }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = 'en-IN';
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setStatusText('Listening... Describe the civic issue in your own words.');
-    };
-
-    recognition.onresult = (event) => {
-      const current = event.resultIndex;
-      const text = event.results[current][0].transcript;
-      setTranscript(text);
-    };
-
-    recognition.onerror = (event) => {
-      setIsListening(false);
-      setStatusText(`Error: ${event.error}. Please try typing or speak clearly.`);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      setStatusText('Recording finished. Review transcript below.');
-    };
-
-    recognition.start();
-  };
-
-  const handleConfirm = () => {
-    if (transcript) {
-      onTranscriptComplete(transcript);
-      onClose();
-    }
+    rec.onstart  = () => { setIsListening(true);  setStatusText('Listening… speak clearly.'); };
+    rec.onresult = (e) => setTranscript(e.results[e.resultIndex][0].transcript);
+    rec.onerror  = (e) => { setIsListening(false); setStatusText(`Error: ${e.error}. Try again.`); };
+    rec.onend    = () => { setIsListening(false);  setStatusText('Done. Review your transcript below.'); };
+    rec.start();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="glass-panel w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl p-6 relative">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-        >
-          <X className="w-5 h-5" />
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-md">
+        <button onClick={onClose} className="absolute top-4 right-4 btn-ghost p-2">
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="text-center space-y-3 mb-5">
-          <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-teal-500 to-emerald-500 p-0.5 shadow-glow-emerald flex items-center justify-center">
-            <button
-              onClick={startSpeechRecognition}
-              className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
-                isListening ? 'bg-rose-600 animate-pulse text-white' : 'bg-slate-950 text-teal-400 hover:bg-slate-900'
-              }`}
-            >
-              {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-            </button>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5">
-              <span>AI Voice Intake</span>
-              <Sparkles className="w-4 h-4 text-amber-400" />
-            </h3>
-            <p className="text-xs text-slate-400">{statusText}</p>
-          </div>
-        </div>
-
-        {/* Live Speech Output Box */}
-        <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 min-h-[100px] text-sm text-slate-200 mb-5 focus:outline-none">
-          {transcript ? (
-            <p className="leading-relaxed">{transcript}</p>
-          ) : (
-            <span className="text-slate-500 italic">"There is a deep pothole near the main entrance street..."</span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end space-x-3">
+        <div className="text-center space-y-4 mb-6">
           <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+            onClick={startRecognition}
+            className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-white shadow-lg transition-all ${
+              isListening
+                ? 'bg-red-500 animate-pulse shadow-red-200'
+                : 'bg-blue-gradient shadow-blue-200 hover:shadow-blue-300'
+            }`}
           >
-            Cancel
+            {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
           </button>
+          <div>
+            <h3 className="text-lg font-display font-bold text-slate-900">AI Voice Intake</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{statusText}</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[90px] mb-5 text-sm text-slate-800">
+          {transcript || <span className="text-slate-400 italic">"There is a deep pothole near the main entrance..."</span>}
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
           <button
             type="button"
-            onClick={handleConfirm}
+            onClick={() => { if (transcript) { onTranscriptComplete(transcript); onClose(); } }}
             disabled={!transcript}
-            className="flex items-center space-x-1.5 bg-gradient-to-r from-teal-500 to-emerald-600 disabled:opacity-50 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-900/40"
+            className="btn-primary disabled:opacity-40"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Use Voice Text</span>
+            Use Voice Text
           </button>
         </div>
       </div>

@@ -1,247 +1,237 @@
 import React, { useState } from 'react';
 import { useCivicData } from '../context/CivicDataContext';
-import { 
-  HardHat, 
-  MapPin, 
-  Navigation, 
-  CheckCircle2, 
-  Camera, 
-  Clock, 
-  AlertTriangle, 
-  Phone,
-  ChevronRight,
-  Sparkles
+import {
+  HardHat, MapPin, Navigation, CheckCircle2, Camera,
+  AlertTriangle, ChevronRight, Clock, Zap
 } from 'lucide-react';
 
 export default function WorkerApp() {
   const { clusters, resolveCluster } = useCivicData();
 
-  // Active Field Worker profile (e.g., Raj Kumar - ROAD Dept, Worker #1)
   const activeWorkerId = 1;
-  const workerName = "Raj Kumar";
-  const workerDept = "ROAD";
+  const workerName     = 'Raj Kumar';
+  const workerDept     = 'ROAD';
 
-  // Filter tasks assigned to worker or open in worker domain
-  const myTasks = clusters.filter(c => c.assignedWorkerId === activeWorkerId || (c.status !== 'RESOLVED' && c.department === workerDept));
+  const myTasks = clusters.filter(c =>
+    c.assignedWorkerId === activeWorkerId ||
+    (c.status !== 'RESOLVED' && c.department === workerDept)
+  );
 
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [afterPhotoUrl, setAfterPhotoUrl] = useState('');
+  const [selectedTask, setSelectedTask]     = useState(null);
+  const [afterPhotoUrl, setAfterPhotoUrl]   = useState('');
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [resolveSuccess, setResolveSuccess] = useState(false);
 
   const handleNavigate = (task) => {
-    // Deep-link into native device maps app (Google Maps / OSM)
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${task.centroidLat},${task.centroidLng}`;
-    window.open(googleMapsUrl, '_blank');
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${task.centroidLat},${task.centroidLng}`,
+      '_blank'
+    );
   };
 
   const handlePhotoSelect = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setAfterPhotoUrl(URL.createObjectURL(file));
-    }
+    if (file) setAfterPhotoUrl(URL.createObjectURL(file));
   };
 
-  const handleResolveSubmit = (e) => {
+  const handleResolve = (e) => {
     e.preventDefault();
-    if (selectedTask) {
-      resolveCluster(
-        selectedTask.id,
-        activeWorkerId,
-        afterPhotoUrl || 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=600&q=80',
-        resolutionNotes || 'Pothole filled with cold asphalt mix. Surface leveled.'
-      );
-      setResolveSuccess(true);
-      setTimeout(() => {
-        setResolveSuccess(false);
-        setSelectedTask(null);
-      }, 1500);
-    }
+    if (!selectedTask) return;
+    resolveCluster(
+      selectedTask.id, activeWorkerId,
+      afterPhotoUrl || 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=600&q=80',
+      resolutionNotes || 'Pothole filled with cold asphalt mix. Surface levelled and compacted.'
+    );
+    setResolveSuccess(true);
+    setTimeout(() => { setResolveSuccess(false); setSelectedTask(null); setAfterPhotoUrl(''); setResolutionNotes(''); }, 1800);
   };
+
+  const priorityLabel = (score) =>
+    score >= 20 ? { label: 'HIGH', cls: 'badge priority-high' }
+    : score >= 10 ? { label: 'MED', cls: 'badge priority-med' }
+    : { label: 'LOW', cls: 'badge priority-low' };
 
   return (
-    <div className="max-w-xl mx-auto space-y-5 animate-fadeIn pb-12">
-      
-      {/* Worker Profile Header */}
-      <div className="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center font-extrabold shadow-lg shadow-orange-950/40">
-            <HardHat className="w-6 h-6" />
+    <div className="max-w-2xl mx-auto space-y-5 pb-10">
+
+      {/* Worker Header */}
+      <div className="card p-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-gradient shadow-md shadow-amber-200 flex items-center justify-center">
+            <HardHat className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h2 className="text-md font-bold text-slate-100 flex items-center gap-1.5">
-              <span>{workerName}</span>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono">
-                {workerDept} DEPT
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">Field Dispatch Worker ID #0412</p>
+            <h1 className="text-xl font-display font-bold text-slate-900">{workerName}</h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="badge badge-amber">{workerDept} DEPT</span>
+              <span className="text-xs text-slate-400">Field Worker ID #0412</span>
+            </div>
           </div>
         </div>
-
-        <div className="text-right text-xs">
-          <span className="text-slate-400 block">Assigned Tasks</span>
-          <strong className="text-amber-400 text-base">{myTasks.filter(t => t.status !== 'RESOLVED').length} Active</strong>
+        <div className="text-right">
+          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Active Tasks</div>
+          <div className="text-3xl font-display font-extrabold text-amber-600 leading-tight">
+            {myTasks.filter(t => t.status !== 'RESOLVED').length}
+          </div>
         </div>
       </div>
 
-      {/* TASK DETAIL / RESOLVE SCREEN */}
+      {/* ─── TASK DETAIL / RESOLVE VIEW ─── */}
       {selectedTask ? (
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-2xl space-y-5">
-          
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <button
-              onClick={() => setSelectedTask(null)}
-              className="text-xs text-slate-400 hover:text-white font-semibold"
-            >
-              ← Back to Task List
+        <div className="card p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <button onClick={() => setSelectedTask(null)} className="btn-ghost text-slate-500">
+              ← Back to List
             </button>
-            <span className="text-xs font-mono text-teal-400">Cluster #{selectedTask.id}</span>
+            <span className="text-xs font-mono text-slate-400">Cluster #{selectedTask.id}</span>
           </div>
 
           {resolveSuccess && (
-            <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-4 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
-              <span>Issue marked as RESOLVED! Citizen notified.</span>
+            <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl text-sm font-bold text-center flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              Issue marked RESOLVED — Citizen notified!
             </div>
           )}
 
-          <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-100">{selectedTask.issueType} Repair Task</h3>
-              <span className="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
-                Priority Score: {selectedTask.priorityScore}
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-1">{selectedTask.description}</p>
-          </div>
-
-          {/* Navigation Action Card */}
-          <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
-            <div className="text-xs text-slate-300">
-              <div className="flex items-center gap-1 font-semibold text-slate-100">
-                <MapPin className="w-4 h-4 text-teal-400" />
-                <span>Nirma Campus Access Rd</span>
+          {!resolveSuccess && (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-display font-bold text-slate-900">{selectedTask.issueType} Repair Task</h2>
+                  <p className="text-sm text-slate-500 mt-1">{selectedTask.description}</p>
+                </div>
+                <span className={priorityLabel(selectedTask.priorityScore).cls}>
+                  {priorityLabel(selectedTask.priorityScore).label}
+                </span>
               </div>
-              <span className="text-[11px] text-slate-400">GPS: {selectedTask.centroidLat.toFixed(4)}, {selectedTask.centroidLng.toFixed(4)}</span>
-            </div>
 
-            <button
-              onClick={() => handleNavigate(selectedTask)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg shadow-blue-900/40"
-            >
-              <Navigation className="w-4 h-4" />
-              <span>Navigate GPS</span>
-            </button>
-          </div>
-
-          {/* Before Photo Comparison */}
-          <div>
-            <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              "Before" Evidence Photo (Reported by Citizen)
-            </span>
-            <img src={selectedTask.photoUrl} alt="Before" className="w-full h-40 object-cover rounded-xl border border-slate-800" />
-          </div>
-
-          {/* Resolve Form */}
-          <form onSubmit={handleResolveSubmit} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Upload "After" Resolution Evidence Photo
-              </label>
-              <div className="relative border-2 border-dashed border-slate-700 rounded-xl p-3 text-center bg-slate-900/60 cursor-pointer">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handlePhotoSelect}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                {afterPhotoUrl ? (
-                  <img src={afterPhotoUrl} alt="After" className="w-full h-32 object-cover rounded-lg border border-slate-700" />
-                ) : (
-                  <div className="space-y-1 py-2">
-                    <Camera className="w-6 h-6 text-slate-500 mx-auto" />
-                    <span className="text-xs text-slate-300 font-semibold block">Tap to capture completion photo</span>
+              {/* Navigate card */}
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 px-4 py-4 rounded-xl">
+                <div>
+                  <div className="text-sm font-bold text-blue-800 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    Nirma Campus Access Road
                   </div>
-                )}
+                  <div className="text-xs text-blue-600 mt-0.5">
+                    GPS: {selectedTask.centroidLat.toFixed(4)}, {selectedTask.centroidLng.toFixed(4)}
+                  </div>
+                </div>
+                <button onClick={() => handleNavigate(selectedTask)} className="btn-primary">
+                  <Navigation className="w-4 h-4" />
+                  Navigate
+                </button>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Worker Completion Notes
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Describe repair work executed on site..."
-                value={resolutionNotes}
-                onChange={(e) => setResolutionNotes(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
-              />
-            </div>
+              {/* Before photo */}
+              <div>
+                <div className="text-sm font-medium text-slate-500 mb-2">
+                  "Before" Evidence — Reported by Citizen
+                </div>
+                <img src={selectedTask.photoUrl} alt="Before" className="w-full h-44 object-cover rounded-xl border border-slate-200" />
+              </div>
 
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-slate-950 font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/50 flex items-center justify-center space-x-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Mark Issue as RESOLVED</span>
-            </button>
-          </form>
+              {/* Resolve form */}
+              <form onSubmit={handleResolve} className="space-y-4 pt-2 border-t border-slate-100">
+                <h3 className="text-sm font-bold text-slate-900">Submit Resolution</h3>
 
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                    After Photo — Completion Evidence
+                  </label>
+                  <div className="relative border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl transition-colors cursor-pointer overflow-hidden bg-slate-50">
+                    <input type="file" accept="image/*" onChange={handlePhotoSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                    {afterPhotoUrl ? (
+                      <img src={afterPhotoUrl} alt="After" className="w-full h-36 object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 gap-2">
+                        <Camera className="w-7 h-7 text-slate-400" />
+                        <span className="text-sm font-semibold text-slate-600">Tap to upload "after" photo</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                    Resolution Notes
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Describe work done on site..."
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    className="input-field resize-none"
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary w-full justify-center py-3 text-sm bg-green-gradient">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Mark Issue as RESOLVED
+                </button>
+              </form>
+            </>
+          )}
         </div>
       ) : (
-        /* TODAY'S TASKS LIST VIEW */
+        /* ─── TASK LIST ─── */
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
             <span>Today's Task Queue</span>
-            <span>Sorted by Priority & Distance</span>
+            <span>Sorted by Priority Score</span>
           </div>
 
-          {myTasks.map((t) => (
-            <div 
-              key={t.id}
-              onClick={() => setSelectedTask(t)}
-              className="glass-card p-4 rounded-xl border border-slate-800 hover:border-amber-500/40 cursor-pointer transition-all flex items-center justify-between space-x-3"
-            >
-              <div className="space-y-1.5 flex-1">
-                <div className="flex items-center space-x-2">
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
-                    t.priorityScore >= 20 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                    t.priorityScore >= 10 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  }`}>
-                    {t.priorityScore >= 20 ? '[HIGH]' : t.priorityScore >= 10 ? '[MED]' : '[LOW]'}
-                  </span>
-                  <span className="font-bold text-slate-100 text-sm">{t.issueType}</span>
+          {myTasks.map((t) => {
+            const { label, cls } = priorityLabel(t.priorityScore);
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTask(t)}
+                className="w-full card card-hover p-4 flex items-center gap-4 text-left"
+              >
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={cls}>{label}</span>
+                    <span className="text-sm font-bold text-slate-900">{t.issueType}</span>
+                    <span className="badge badge-gray">{t.reportCount} report{t.reportCount > 1 ? 's' : ''}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">{t.description}</p>
+                  <div className="flex items-center gap-4 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> 0.4 km away
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {t.daysOpen}d open
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-amber-500" /> Score: {t.priorityScore}
+                    </span>
+                  </div>
                 </div>
 
-                <p className="text-xs text-slate-300 line-clamp-1">{t.description}</p>
-
-                <div className="flex items-center space-x-3 text-[11px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-slate-500" /> 0.4 km away
-                  </span>
-                  <span>{t.reportCount} reports merged</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleNavigate(t); }}
+                    className="btn-secondary p-2"
+                    title="Open in Maps"
+                  >
+                    <Navigation className="w-4 h-4" />
+                  </button>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
                 </div>
-              </div>
+              </button>
+            );
+          })}
 
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleNavigate(t); }}
-                  className="p-2 rounded-lg bg-slate-800 text-blue-400 hover:bg-slate-700"
-                  title="Navigate GPS"
-                >
-                  <Navigation className="w-4 h-4" />
-                </button>
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </div>
+          {myTasks.length === 0 && (
+            <div className="card p-10 text-center text-slate-400">
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-400" />
+              <p className="font-semibold">All tasks completed! 🎉</p>
             </div>
-          ))}
+          )}
         </div>
       )}
-
     </div>
   );
 }

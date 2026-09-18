@@ -72,10 +72,10 @@ export default function MapView({
         scrollWheelZoom={true} 
         style={{ width: '100%', height: '100%', minHeight: '400px' }}
       >
-        {/* Dark Modern Map Tiles */}
+        {/* Light-mode Map Tiles — CartoDB Positron */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         {/* Heatmap Hotspot Radius Visualization if Enabled */}

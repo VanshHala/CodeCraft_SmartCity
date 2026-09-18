@@ -103,7 +103,13 @@ export const SEEDED_WORKERS = [
 export function CivicDataProvider({ children }) {
   const [clusters, setClusters] = useState(SEEDED_CLUSTERS);
   const [workers, setWorkers] = useState(SEEDED_WORKERS);
+  
+  // Auth & Role State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState('CITIZEN'); // CITIZEN | AUTHORITY | WORKER
+  const [selectedDepartment, setSelectedDepartment] = useState('ALL'); // ROAD | WATER | ELECTRICAL | SANITATION | ALL
+  const [currentUser, setCurrentUser] = useState(null);
+
   const [activeTab, setActiveTab] = useState('report');
   
   // Citizen Trust & Rewards
@@ -116,6 +122,38 @@ export function CivicDataProvider({ children }) {
     totalSubmitted: 4,
     verifiedCount: 3,
   });
+
+  // Login handler
+  const loginUser = ({ email, password, role, department, name, avatar, badge, workerId }) => {
+    const roleValue = role || 'CITIZEN';
+    const deptValue = department || (roleValue === 'CITIZEN' ? 'GENERAL' : 'ALL');
+    const userName = name || email.split('@')[0];
+
+    const userObj = {
+      email,
+      name: userName,
+      role: roleValue,
+      department: deptValue,
+      badge: badge || (roleValue === 'CITIZEN' ? 'Verified Citizen' : `${deptValue} Department`),
+      avatar: avatar || userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+      workerId: workerId || null
+    };
+
+    setCurrentUser(userObj);
+    setUserRole(roleValue);
+    setSelectedDepartment(deptValue);
+    setIsAuthenticated(true);
+
+    if (roleValue === 'CITIZEN') {
+      setCitizenProfile(prev => ({ ...prev, name: userName, email }));
+    }
+  };
+
+  // Logout handler
+  const logoutUser = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
 
   const [myReports, setMyReports] = useState([
     {
@@ -353,8 +391,14 @@ export function CivicDataProvider({ children }) {
     <CivicDataContext.Provider value={{
       clusters,
       workers,
+      isAuthenticated,
+      currentUser,
       userRole,
       setUserRole,
+      selectedDepartment,
+      setSelectedDepartment,
+      loginUser,
+      logoutUser,
       activeTab,
       setActiveTab,
       citizenProfile,

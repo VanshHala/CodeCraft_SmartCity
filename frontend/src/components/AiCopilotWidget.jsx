@@ -1,41 +1,36 @@
 import React, { useState } from 'react';
-import { Bot, X, Send, Sparkles, User, ChevronUp, ChevronDown } from 'lucide-react';
+import { Bot, X, Send, Sparkles } from 'lucide-react';
 import { useCivicData } from '../context/CivicDataContext';
 
 export default function AiCopilotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { clusters } = useCivicData();
-  const [input, setInput] = useState('');
+  const [input, setInput]     = useState('');
   const [messages, setMessages] = useState([
-    {
-      sender: 'ai',
-      text: 'Hello! I am CivicPulse AI Copilot. Ask me about reported issues, risk routes, or status updates in your ward.'
-    }
+    { sender: 'ai', text: "Hello! I'm CivicPulse AI Copilot. Ask me about reported issues, routing, or ward status." }
   ]);
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
     const userMsg = input.trim();
     const newMsgs = [...messages, { sender: 'user', text: userMsg }];
     setMessages(newMsgs);
     setInput('');
 
-    // Generate intelligent AI response based on data
     setTimeout(() => {
-      let reply = "I analyzed our city road graph. Currently, there are " + clusters.length + " active issue clusters.";
-      const query = userMsg.toLowerCase();
+      const q = userMsg.toLowerCase();
+      let reply = `There are currently ${clusters.length} active civic issue clusters being tracked.`;
 
-      if (query.includes('pothole') || query.includes('road')) {
-        const potholes = clusters.filter(c => c.issueType === 'POTHOLE');
-        reply = `There are ${potholes.length} pothole cluster(s) reported in your area. Highest priority pothole is near university gate (Priority Score: 28.8).`;
-      } else if (query.includes('safest') || query.includes('route') || query.includes('fastest')) {
-        reply = "Our risk-weighted Dijkstra algorithm adjusts road edge costs based on active hazard severity. Safest mode avoids high-severity pothole and waterlogging stretches automatically.";
-      } else if (query.includes('water') || query.includes('flood') || query.includes('rain')) {
-        reply = "Heavy rainfall warning is active (55mm/24h). 2 waterlogging reports have been merged and assigned to Amit Patel (Water Dept).";
-      } else if (query.includes('status') || query.includes('my report')) {
-        reply = "Your reported pothole #101 has been deduplicated (merged with 2 other citizen reports) and assigned high priority. Work team has been dispatched.";
+      if (q.includes('pothole') || q.includes('road')) {
+        const n = clusters.filter(c => c.issueType === 'POTHOLE').length;
+        reply = `${n} pothole cluster(s) found. Highest priority near university gate (Score: 28.8).`;
+      } else if (q.includes('route') || q.includes('safest') || q.includes('fastest')) {
+        reply = 'Risk-aware routing uses Dijkstra with live severity edge costs. Safest mode detours around high-severity hazards automatically.';
+      } else if (q.includes('water') || q.includes('flood')) {
+        reply = 'Heavy rainfall alert active: 55mm/24h forecast. 2 waterlogging clusters flagged, Amit Patel (Water) dispatched.';
+      } else if (q.includes('status') || q.includes('report')) {
+        reply = 'Your pothole #101 (3 reports merged) is ASSIGNED with top priority. Field team dispatched.';
       }
 
       setMessages([...newMsgs, { sender: 'ai', text: reply }]);
@@ -47,71 +42,57 @@ export default function AiCopilotWidget() {
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center space-x-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold px-4 py-3 rounded-full shadow-2xl shadow-teal-500/30 transition-all transform hover:scale-105"
+          className="btn-primary rounded-full px-5 py-3 text-sm shadow-xl shadow-blue-200"
         >
-          <div className="w-6 h-6 rounded-full bg-slate-950 text-teal-400 flex items-center justify-center">
-            <Bot className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-display tracking-wide">AI Civic Copilot</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping" />
+          <Bot className="w-5 h-5" />
+          <span>AI Civic Copilot</span>
+          <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot" />
         </button>
       ) : (
-        <div className="glass-panel w-80 sm:w-96 rounded-2xl border border-slate-700 shadow-2xl flex flex-col h-[420px] overflow-hidden animate-fadeIn">
+        <div className="card w-80 sm:w-96 flex flex-col h-[420px] shadow-elevated overflow-hidden animate-fade-up">
           {/* Header */}
-          <div className="bg-slate-900/90 p-3.5 border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/40 text-teal-400 flex items-center justify-center">
-                <Bot className="w-4 h-4" />
+          <div className="bg-blue-gradient p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1">
-                  <span>Civic AI Copilot</span>
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                </h4>
-                <p className="text-[10px] text-teal-400 font-medium">Real-time Ward Assistant</p>
+                <div className="text-sm font-bold text-white flex items-center gap-1">
+                  Civic AI Copilot <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                </div>
+                <div className="text-[11px] text-blue-200">Ward 4 Real-time Assistant</div>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-            >
+            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 p-3.5 space-y-3 overflow-y-auto text-xs">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50">
             {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[85%] p-3 rounded-2xl ${
-                    m.sender === 'user'
-                      ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 font-medium rounded-br-none'
-                      : 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-bl-none'
-                  }`}
-                >
+              <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs font-medium ${
+                  m.sender === 'user'
+                    ? 'bg-blue-gradient text-white rounded-br-none'
+                    : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none shadow-sm'
+                }`}>
                   {m.text}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSend} className="p-3 bg-slate-900/90 border-t border-slate-800 flex items-center space-x-2">
+          {/* Input */}
+          <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex gap-2">
             <input
               type="text"
-              placeholder="Ask AI about road safety or reports..."
+              placeholder="Ask about issues, routes, status..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+              className="input-field flex-1 text-xs py-2"
             />
-            <button
-              type="submit"
-              className="bg-teal-500 hover:bg-teal-400 text-slate-950 p-2 rounded-xl"
-            >
+            <button type="submit" className="btn-primary p-2">
               <Send className="w-3.5 h-3.5" />
             </button>
           </form>
